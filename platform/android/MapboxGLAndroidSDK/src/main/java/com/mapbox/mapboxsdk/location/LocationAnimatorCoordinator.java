@@ -7,10 +7,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.util.SparseArray;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.BounceInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.location.modes.PulseMode;
 import com.mapbox.mapboxsdk.log.Logger;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Projection;
@@ -145,6 +150,11 @@ final class LocationAnimatorCoordinator {
                    @Nullable MapboxMap.CancelableCallback callback) {
     updateTiltAnimator((float) targetTilt, (float) currentCameraPosition.tilt, callback);
     playAnimators(animationDuration, ANIMATOR_TILT);
+  }
+
+  void startLocationCirclePulsing(LocationComponentOptions options, MapboxMap mapboxMap) {
+    new PulsingLocationCircleAnimator().animatePulsingCircleRadius(
+        retrievePulseInterpolator(options.pulseInterpolator()), mapboxMap, options);
   }
 
   private LatLng getPreviousLayerLatLng() {
@@ -381,11 +391,26 @@ final class LocationAnimatorCoordinator {
     this.accuracyAnimationEnabled = accuracyAnimationEnabled;
   }
 
-  void setMaxAnimationFps(int maxAnimationFps) {
-    if (maxAnimationFps <= 0) {
-      Logger.e(TAG, "Max animation FPS cannot be less or equal to 0.");
-      return;
+  void setMaxAnimationFps(int maxAnimationFps){
+      if (maxAnimationFps <= 0) {
+        Logger.e(TAG, "Max animation FPS cannot be less or equal to 0.");
+        return;
+      }
+      this.maxAnimationFps = maxAnimationFps;
+  }
+
+  private Interpolator retrievePulseInterpolator(String interpolatorAnimationType) {
+    switch(interpolatorAnimationType) {
+      case PulseMode.LINEAR:
+        return new LinearInterpolator();
+      case PulseMode.ACCELERATE:
+        return new AccelerateInterpolator();
+      case PulseMode.DECELERATE:
+        return new DecelerateInterpolator();
+      case PulseMode.BOUNCE:
+        return new BounceInterpolator();
+      default:
+        return new DecelerateInterpolator();
     }
-    this.maxAnimationFps = maxAnimationFps;
   }
 }
